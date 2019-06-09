@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>God Mode</title>
+	<script src='https://api.mapbox.com/mapbox-gl-js/v1.0.0/mapbox-gl.js'></script>
+	<script src="polyline.js"></script>
+	<script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+	<link href='https://api.mapbox.com/mapbox-gl-js/v1.0.0/mapbox-gl.css' rel='stylesheet' />
+	<style>
+		html, body {
+			background-color: #000;
+			color: #fff;
+			padding: 0;
+			margin: 0;
+		}
+
+		#map {
+			width: 100% !important;
+			height: 500px !important;
+		}
+	</style>
+</head>
+<body>
+	<div id='map' style='width: 400px; height: 300px;'></div>
+	<script>
+		console.log("[!] Can you hear me?");
+
+		mapboxgl.accessToken = 'pk.eyJ1Ijoicm9ibCIsImEiOiJjamtnMDFnb2MwZGl0M3BuenpyNjdlcnJnIn0.LiHdEAhRzHijAoTb0tsciw';
+		var map = new mapboxgl.Map({
+			container: 'map',
+			center: [-0.1304, 51.4559],
+			zoom: 11.15,
+			style: 'mapbox://styles/robl/cjwnrx3w41nun1bqrkpn41jp2'
+		});
+
+		var pathCoordinates = polyline.toGeoJSON("iu`yHlrd@VKPKjAmAz@kA`@[|@g@z@Q`@ING~AuAfAw@n@]|@c@RIp@Mn@KnB[v@OTA|COr@O~C_@n@ElDClAAjAD|@HfBBRDPJPTNd@b@tALPLDVC^[nBuBfCsCrCoDlAuAp@q@bAq@n@[TGd@CnCCdCEdFMt@BX@`DAhBU^Mz@c@zAgA|B_Bd@YtA[dAUHE?A?C?A@EDA@?@?b@}@d@wAR}@Nw@N}@LeADmACy@k@qDAw@D]J]JQJO?A?A?CBEBOJe@l@gBVu@Lm@bAgIPoA^_Bh@cBN]z@oAxAoBlCoERc@r@kE`@kBZsABYCa@Bo@P{@v@qCrCkJp@cCXi@n@iAh@o@`@k@`BeBpC}Ch@i@d@q@j@{BZq@Xc@`BsBbAgAr@k@Za@`@aAzA}Fh@mBJWPQAs@B]TyAs@}@qBkC{@yAi@_AaAeBHc@^{B`AsFtAgI`DwQjAuG~E}OfAoDFS[]yA_BiD}DmD}EsAiB]a@q@i@]SYUYk@mCkF_AuBYy@qAoDu@yBKa@Ia@J?^?|BAjBAx@EtFc@tACvBER?H?AIGa@SeASq@G[?KHg@VgABCBCEu@A??AA?ACBIuAuHq@_Eq@aGo@cE");
+		var route = {
+			"type": "Feature",
+			"properties": {},
+			"geometry": pathCoordinates
+		}
+
+		var lineDistance = turf.lineDistance(route, {units: 'kilometers'});
+
+		var point = {
+			"type": "FeatureCollection",
+			"features": [{
+				"type": "Feature",
+				"properties": {},
+				"geometry": {
+					"type": "Point",
+					"coordinates": pathCoordinates["coordinates"][0]
+				}
+			}]
+		};
+
+		var arc = [];
+		var steps = 600;
+		console.log("Distance:");
+		console.log(lineDistance);
+		console.log("Division:");
+		console.log(lineDistance / steps);
+
+		for (var i = 0; i < lineDistance; i += lineDistance / steps) {
+			var segment = turf.along(route, i, {units: 'kilometers'});
+			arc.push(segment.geometry.coordinates);
+		}
+
+		console.log("Steps");
+		console.log(arc[0]);
+
+		var counter = 0;
+
+		map.on('load', function () {
+			map.addSource('point', {
+				"type": "geojson",
+				"data": point
+			});
+
+			map.addLayer({
+				"id": "point",
+				"source": "point",
+				"type": "symbol",
+				"layout": {
+					"icon-image": "bicycle-15",
+					"icon-rotate": ["get", "bearing"],
+					"icon-rotation-alignment": "map",
+					"icon-allow-overlap": true,
+					"icon-ignore-placement": true
+				}
+			});
+
+			map.addLayer({
+				"id": "route",
+				"type": "line",
+				"source": {
+					"type": "geojson",
+					"data": route
+				},
+				"layout": {
+					"line-join": "round",
+					"line-cap": "round"
+				},
+				"paint": {
+					"line-color": "rgba(255,255,255,0.5)",
+					"line-width": 2
+				}
+			});
+
+
+			function animate() {
+				// Update point geometry to a new position based on counter denoting
+				// the index to access the arc.
+				
+				// Request the next frame of animation so long the end has not been reached.
+				if (counter < steps) {
+					point.features[0].geometry.coordinates = arc[counter];
+
+					// Update the source with this new data.
+					map.getSource('point').setData(point);
+					requestAnimationFrame(animate);
+				} else {
+					console.log("Benchmark");
+					console.log(Date.now() - start);
+				}
+				
+				counter = counter + 1;
+			}
+
+			var start = Date.now();
+			animate(counter);
+		});
+
+		console.log(lineDistance);
+	</script>
+</body>
+</html>
