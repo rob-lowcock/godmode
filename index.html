@@ -21,6 +21,35 @@
 			width: 100% !important;
 			height: 500px !important;
 		}
+
+		.progressBox {
+			background-color: rgba(0,0,0,0.5);
+			border-radius: 5px;
+			border: 1px solid #fff;
+		}
+
+		.progressBox span {
+			font-family: "Futura", Helvetica, Arial, sans-serif;
+			color: #fff;
+			font-weight: normal;
+			padding: 5px;
+			text-transform: uppercase;
+		}
+
+		.progressBar {
+			background-color: #fff;
+			width: 0;
+			height: 10px;
+			animation-name: progress;
+			animation-duration: 3s;
+			animation-timing-function: linear;
+			animation-fill-mode: forwards;
+		}
+
+		@keyframes progress {
+			from { width: 0; }
+			to { width: 100%; }
+		}
 	</style>
 </head>
 <body>
@@ -59,18 +88,12 @@
 
 		var arc = [];
 		var steps = 600;
-		console.log("Distance:");
-		console.log(lineDistance);
-		console.log("Division:");
-		console.log(lineDistance / steps);
+		var pathTimeMs = 3000;
 
 		for (var i = 0; i < lineDistance; i += lineDistance / steps) {
 			var segment = turf.along(route, i, {units: 'kilometers'});
 			arc.push(segment.geometry.coordinates);
 		}
-
-		console.log("Steps");
-		console.log(arc[0]);
 
 		var counter = 0;
 
@@ -105,13 +128,20 @@
 					"line-cap": "round"
 				},
 				"paint": {
-					"line-color": "rgba(255,255,255,0.5)",
+					"line-color": "rgba(255,255,255,0.3)",
 					"line-width": 2
 				}
 			});
 
+			var hasStarted = false;
+			var start = Date.now();
 
 			function animate() {
+				if (!hasStarted) {
+					hasStarted = true;
+					start = Date.now();
+				}
+
 				// Update point geometry to a new position based on counter denoting
 				// the index to access the arc.
 				
@@ -126,15 +156,30 @@
 					console.log("Benchmark");
 					console.log(Date.now() - start);
 				}
-				
-				counter = counter + 1;
+
+				var elapsed = Date.now() - start;
+				var multiplier = elapsed / pathTimeMs;
+
+				if (multiplier > 1) {
+					multiplier = 1;
+				}
+
+				counter = Math.floor(multiplier * steps);
 			}
 
-			var start = Date.now();
-			animate(counter);
-		});
+			var el = document.createElement('div');
+			var title = document.createElement('span');
+			var progressBar = document.createElement('div');
+			title.innerText = 'Wandsworth';
+			progressBar.className = 'progressBar';
 
-		console.log(lineDistance);
+			el.className = 'progressBox';
+			el.innerHTML = title.outerHTML + progressBar.outerHTML;
+
+			new mapboxgl.Marker(el).setLngLat(pathCoordinates["coordinates"][0]).addTo(map);
+
+			setTimeout(animate, 3000, counter);
+		});
 	</script>
 </body>
 </html>
